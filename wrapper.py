@@ -64,5 +64,5 @@ def login(path):
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("FC_SERVER_PORT", 9000))
+    port = int(os.environ.get("SERVER_PORT", 9000))
     app.run(host="0.0.0.0", port=port)

@@ -16,5 +16,5 @@ for i in $(seq 1 30); do
 done
 
 # 启动 FC 入口（Flask wrapper）
-echo "[entrypoint] 启动 Flask wrapper，端口 $FC_SERVER_PORT"
+echo "[entrypoint] 启动 Flask wrapper，端口 $SERVER_PORT"
 python3 /wrapper.py
