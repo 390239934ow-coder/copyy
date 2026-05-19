@@ -1,72 +1,58 @@
 #!/bin/bash
 set -e
 
-# 将 NAS /mnt/qq-bot 软链接为 /app/.config/QQ
+# === 1. NAS → /app/.config/QQ ===
 mkdir -p /app/.config /mnt/qq-bot
 if [ ! -L /app/.config/QQ ]; then
     rm -rf /app/.config/QQ
     ln -s /mnt/qq-bot /app/.config/QQ
-    echo "[entrypoint] /app/.config/QQ → /mnt/qq-bot (NAS)"
 fi
 
-# 1. 将 NapCat 配置目录持久化到 NAS（/app/.config/QQ 已挂载 NAS）
-NAPCAT_CONFIG_NAS="/app/.config/QQ/napcat_config"
-mkdir -p "$NAPCAT_CONFIG_NAS"
+# === 2. NapCat config → NAS ===
+NAPCAT_CONFIG="/mnt/qq-bot/napcat_config"
+mkdir -p "$NAPCAT_CONFIG"
 if [ ! -L /app/napcat/config ]; then
     rm -rf /app/napcat/config
-    ln -s "$NAPCAT_CONFIG_NAS" /app/napcat/config
-    echo "[entrypoint] NapCat 配置目录已链接到 NAS: $NAPCAT_CONFIG_NAS"
-else
-    echo "[entrypoint] NapCat 配置目录已是 NAS 链接"
+    ln -s "$NAPCAT_CONFIG" /app/napcat/config
 fi
 
-# 2. 预写 HTTP 服务器配置（如尚未配置）
+# === 3. OneBot11 HTTP Server config (always overwrite, new format) ===
 if [ -n "$ACCOUNT" ]; then
-    CONFIG_FILE="/app/napcat/config/onebot11_${ACCOUNT}.json"
-    if [ ! -f "$CONFIG_FILE" ]; then
-        cat > "$CONFIG_FILE" << 'EOF'
+    cat > "$NAPCAT_CONFIG/onebot11_${ACCOUNT}.json" << 'EOF'
 {
-  "httpServers": [
-    {
-      "name": "http-api",
-      "enable": true,
-      "port": 3000,
-      "host": "0.0.0.0",
-      "enableHeart": false,
-      "heartInterval": 30000,
-      "token": "",
-      "debug": false,
-      "messagePostFormat": "array",
-      "reportSelfMessage": false
-    }
-  ],
-  "httpClients": [],
-  "websocketServers": [],
-  "websocketClients": []
+  "network": {
+    "httpServers": [
+      {
+        "name": "http-api",
+        "enable": true,
+        "port": 3000,
+        "host": "0.0.0.0",
+        "enableHeart": false,
+        "heartInterval": 30000,
+        "token": "",
+        "debug": false,
+        "messagePostFormat": "array",
+        "reportSelfMessage": false
+      }
+    ],
+    "httpClients": [],
+    "websocketServers": [],
+    "websocketClients": []
+  }
 }
 EOF
-        echo "[entrypoint] 已预配置 NapCat HTTP 服务器 (port 3000) → $CONFIG_FILE"
-    else
-        echo "[entrypoint] NapCat HTTP 服务器配置已存在，跳过"
-    fi
-else
-    echo "[entrypoint] 警告: ACCOUNT 未设置，无法预配置 HTTP 服务器"
 fi
 
-# 3. 启动 NapCat（调用基础镜像原始 entrypoint，后台运行）
-echo "[entrypoint] 启动 NapCat..."
+# === 4. Start NapCat (base image entrypoint, background) ===
 bash /app/napcat-entrypoint.sh &
 
-# 4. 等 NapCat WebUI 就绪（比等 port 3000 更快）
-echo "[entrypoint] 等待 NapCat 就绪..."
-for i in $(seq 1 20); do
-    if curl -sf http://localhost:6099/ > /dev/null 2>&1; then
-        echo "[entrypoint] NapCat 已就绪"
+# === 5. Wait for NapCat HTTP API ===
+for i in $(seq 1 30); do
+    if curl -sf http://localhost:3000/get_login_info > /dev/null 2>&1; then
         break
     fi
     sleep 2
 done
 
-# 5. 启动 FC 入口（Flask wrapper）
-echo "[entrypoint] 启动 Flask wrapper，端口 $SERVER_PORT"
-python3 /wrapper.py
+# === 6. Start Flask API (FC entrypoint, foreground) ===
+exec python3 /wrapper.py
