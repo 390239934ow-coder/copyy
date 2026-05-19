@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# 启动 NapCat（后台）
+# 启动 NapCat（调用基础镜像原始 entrypoint，后台运行）
 echo "[entrypoint] 启动 NapCat..."
-cd /app && bash napcat.sh &
+bash /napcat-entrypoint.sh &
 
 # 等 NapCat HTTP 服务就绪
 echo "[entrypoint] 等待 NapCat 就绪..."
