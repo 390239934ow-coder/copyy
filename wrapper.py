@@ -1,17 +1,18 @@
 """
 FC QQ Bot wrapper
-- 监听 FC_SERVER_PORT（FC 要求）
+- 监听 SERVER_PORT（FC 要求）
 - 代理到本地 NapCat HTTP Server（port 3000）
 - 同时暴露 NapCat 登录页（/login）供首次扫码
 """
 
 import os
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 
 app = Flask(__name__)
-NAPCAT = "http://localhost:3000"
-QQ_GROUP = int(os.environ.get("QQ_GROUP_ID", "0"))
+NAPCAT    = "http://localhost:3000"
+NAPCAT_UI = "http://localhost:6099"
+QQ_GROUP  = int(os.environ.get("QQ_GROUP_ID", "0"))
 
 
 @app.get("/")
@@ -41,25 +42,33 @@ def send():
         return jsonify({"error": str(e)}), 500
 
 
-NAPCAT_UI = "http://localhost:6099"
+@app.get("/qrcode")
+def qrcode():
+    """直接返回登录二维码图片"""
+    try:
+        return send_file("/app/napcat/cache/qrcode.png", mimetype="image/png")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 404
+
 
 @app.route("/login", defaults={"path": ""})
 @app.route("/login/<path:path>")
 def login(path):
-    """首次登录：反代 NapCat WebUI（port 6099）"""
+    """反代 NapCat WebUI（port 6099）"""
     url = f"{NAPCAT_UI}/{path}"
     try:
+        fwd_headers = {k: v for k, v in request.headers
+                       if k.lower() not in ("host", "accept-encoding")}
         resp = requests.request(
-            method  = request.method,
-            url     = url,
-            headers = {k: v for k, v in request.headers if k.lower() != "host"},
-            data    = request.get_data(),
-            params  = request.args,
+            method          = request.method,
+            url             = url,
+            headers         = fwd_headers,
+            data            = request.get_data(),
+            params          = request.args,
             allow_redirects = False,
-            timeout = 10,
+            timeout         = 10,
         )
         headers = dict(resp.headers)
-        # 去掉会导致 Flask 二次编码冲突的头
         for h in ["Transfer-Encoding", "Content-Encoding", "Content-Length"]:
             headers.pop(h, None)
         if "Location" in headers and headers["Location"].startswith("/"):
