@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# 将 NAS /mnt/qq-bot 软链接为 /app/.config/QQ
+mkdir -p /app/.config /mnt/qq-bot
+if [ ! -L /app/.config/QQ ]; then
+    rm -rf /app/.config/QQ
+    ln -s /mnt/qq-bot /app/.config/QQ
+    echo "[entrypoint] /app/.config/QQ → /mnt/qq-bot (NAS)"
+fi
+
 # 1. 将 NapCat 配置目录持久化到 NAS（/app/.config/QQ 已挂载 NAS）
 NAPCAT_CONFIG_NAS="/app/.config/QQ/napcat_config"
 mkdir -p "$NAPCAT_CONFIG_NAS"
