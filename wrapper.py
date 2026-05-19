@@ -51,7 +51,35 @@ def qrcode():
         return jsonify({"error": str(e)}), 404
 
 
-@app.route("/login", defaults={"path": ""})
+@app.get("/setup")
+def setup():
+    """一键配置 NapCat HTTP 服务器（port 3000）"""
+    try:
+        r = requests.post(
+            f"{NAPCAT_UI}/api/network/config",
+            headers={"Authorization": f"Bearer {os.environ.get('WEBUI_TOKEN', '')}"},
+            json={
+                "httpServers": [{
+                    "name": "http-api",
+                    "enable": True,
+                    "port": 3000,
+                    "host": "0.0.0.0",
+                    "enableHeart": False,
+                    "heartInterval": 30000,
+                    "token": "",
+                    "debug": False,
+                }],
+                "httpClients": [],
+                "websocketServers": [],
+                "websocketClients": [],
+            },
+            timeout=10,
+        )
+        return jsonify({"ok": True, "result": r.json()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @app.route("/login/<path:path>")
 def login(path):
     """反代 NapCat WebUI（port 6099）"""
