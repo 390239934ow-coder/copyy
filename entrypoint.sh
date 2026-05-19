@@ -10,16 +10,33 @@ fi
 
 # === 2. NapCat config → NAS ===
 NAPCAT_CONFIG="/mnt/qq-bot/napcat_config"
-mkdir -p "$NAPCAT_CONFIG"
+mkdir -p "$NAPCAT_CONFIG" /app/napcat
 if [ ! -L /app/napcat/config ]; then
     rm -rf /app/napcat/config
     ln -s "$NAPCAT_CONFIG" /app/napcat/config
 fi
 
-# === 3. OneBot11 HTTP Server config (always overwrite, new format) ===
+# === 3. OneBot11 HTTP Server config (always overwrite) ===
 if [ -n "$ACCOUNT" ]; then
     cat > "$NAPCAT_CONFIG/onebot11_${ACCOUNT}.json" << 'EOF'
 {
+  "httpServers": [
+    {
+      "name": "http-api",
+      "enable": true,
+      "port": 3000,
+      "host": "0.0.0.0",
+      "enableHeart": false,
+      "heartInterval": 30000,
+      "token": "",
+      "debug": false,
+      "messagePostFormat": "array",
+      "reportSelfMessage": false
+    }
+  ],
+  "httpClients": [],
+  "websocketServers": [],
+  "websocketClients": [],
   "network": {
     "httpServers": [
       {
