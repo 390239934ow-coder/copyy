@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# 将 NapCat 配置目录持久化到 NAS（/app/.config/QQ 已挂载 NAS）
+NAPCAT_CONFIG_NAS="/app/.config/QQ/napcat_config"
+mkdir -p "$NAPCAT_CONFIG_NAS"
+if [ ! -L /app/napcat/config ]; then
+    rm -rf /app/napcat/config
+    ln -s "$NAPCAT_CONFIG_NAS" /app/napcat/config
+fi
+
 # 启动 NapCat（调用基础镜像原始 entrypoint，后台运行）
 echo "[entrypoint] 启动 NapCat..."
 bash /app/napcat-entrypoint.sh &

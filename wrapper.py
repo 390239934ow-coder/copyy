@@ -58,7 +58,13 @@ def login(path):
             allow_redirects = False,
             timeout = 10,
         )
-        return resp.content, resp.status_code, dict(resp.headers)
+        headers = dict(resp.headers)
+        # 去掉会导致 Flask 二次编码冲突的头
+        for h in ["Transfer-Encoding", "Content-Encoding", "Content-Length"]:
+            headers.pop(h, None)
+        if "Location" in headers and headers["Location"].startswith("/"):
+            headers["Location"] = "/login" + headers["Location"]
+        return resp.content, resp.status_code, headers
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
