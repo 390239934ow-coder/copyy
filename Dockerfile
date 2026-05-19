@@ -1,7 +1,7 @@
 FROM mlikiowa/napcat-docker:latest
 
-# 探测基础镜像文件结构（查完后删）
-RUN echo "=== / ===" && ls / && echo "=== /app ===" && ls /app/ 2>/dev/null || true && echo "=== sh files ===" && find / -maxdepth 3 -name "*.sh" 2>/dev/null || true
+# 备份基础镜像原始 entrypoint（NapCat 启动脚本）
+RUN cp /app/entrypoint.sh /app/napcat-entrypoint.sh
 
 # 安装 Python 和 Flask（作为 FC 的 HTTP 入口）
 RUN apt-get update -qq && apt-get -f install -y -qq && \
