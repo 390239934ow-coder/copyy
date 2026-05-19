@@ -1,8 +1,8 @@
 """
 FC QQ Bot wrapper
-- 监听 SERVER_PORT（FC 要求）
+- 监听 SERVER_PORT
 - 代理到本地 NapCat HTTP Server（port 3000）
-- 同时暴露 NapCat 登录页（/login）供首次扫码
+- 反代 NapCat WebUI（port 6099）
 """
 
 import os
@@ -26,7 +26,6 @@ def health():
 
 @app.post("/send")
 def send():
-    """merchant-fetcher 调用此接口发群消息"""
     data    = request.json or {}
     group   = data.get("group_id", QQ_GROUP)
     message = data.get("message", "")
@@ -44,7 +43,6 @@ def send():
 
 @app.get("/qrcode")
 def qrcode():
-    """直接返回登录二维码图片"""
     try:
         return send_file("/app/napcat/cache/qrcode.png", mimetype="image/png")
     except Exception as e:
@@ -61,18 +59,20 @@ def setup():
             params={"token": token},
             json={
                 "httpServers": [{
-                    "name": "http-api",
-                    "enable": True,
-                    "port": 3000,
-                    "host": "0.0.0.0",
-                    "enableHeart": False,
-                    "heartInterval": 30000,
-                    "token": "",
-                    "debug": False,
+                    "name":            "http-api",
+                    "enable":          True,
+                    "port":            3000,
+                    "host":            "0.0.0.0",
+                    "enableHeart":     False,
+                    "heartInterval":   30000,
+                    "token":           "",
+                    "debug":           False,
+                    "messagePostFormat": "array",
+                    "reportSelfMessage": False,
                 }],
-                "httpClients": [],
-                "websocketServers": [],
-                "websocketClients": [],
+                "httpClients":       [],
+                "websocketServers":  [],
+                "websocketClients":  [],
             },
             timeout=10,
         )
@@ -81,6 +81,7 @@ def setup():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/login", defaults={"path": ""})
 @app.route("/login/<path:path>")
 def login(path):
     """反代 NapCat WebUI（port 6099）"""
