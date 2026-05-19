@@ -55,9 +55,10 @@ def qrcode():
 def setup():
     """一键配置 NapCat HTTP 服务器（port 3000）"""
     try:
+        token = os.environ.get("WEBUI_TOKEN", "")
         r = requests.post(
             f"{NAPCAT_UI}/api/network/config",
-            headers={"Authorization": f"Bearer {os.environ.get('WEBUI_TOKEN', '')}"},
+            params={"token": token},
             json={
                 "httpServers": [{
                     "name": "http-api",
